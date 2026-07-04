@@ -1,17 +1,13 @@
-# Core data / ML stack for fraud detection
+# Stack per CLAUDE.md §2
 numpy
 pandas
 openpyxl
 scikit-learn
-scipy
-joblib
-matplotlib
-seaborn
 imbalanced-learn
+joblib
 plotly
 streamlit
-jupyter
 
-# Dev tooling
+# Dev tooling only (not used by pipeline or dashboard)
 pytest
 ruff
