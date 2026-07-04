@@ -24,6 +24,8 @@ htmlcov/
 data/
 *.csv
 *.parquet
+# ...but the dashboard artifacts must be in the repo for Streamlit Cloud deploys
+!output/*.csv
 
 # Environment / secrets
 .env
@@ -32,4 +34,3 @@ data/
 .DS_Store
 .idea/
 .vscode/
-models/
