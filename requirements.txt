@@ -9,5 +9,4 @@ plotly
 streamlit
 
 # Dev tooling only (not used by pipeline or dashboard)
-pytest
 ruff
