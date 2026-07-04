@@ -1,66 +1,138 @@
-# Fraud Detection — Model Pipeline + Streamlit Dashboard
+<div align="center">
 
-Two-stage fraud detection system (Zidio Development internship project):
+# 💳 Financial Fraud Detection System
 
-1. **Model pipeline** — trains 5 ML classifiers on transaction data, compares them on a
-   held-out test set, and saves the best one (RandomForest, ROC-AUC 0.993).
-2. **Dashboard** — a 5-page Streamlit app with model comparison, fraud-pattern charts,
-   a held-out-test confusion matrix, a live threshold explorer, and real-time scoring
-   of manually entered transactions.
+**Machine-learning pipeline + interactive Streamlit dashboard for real-time fraud scoring on extremely imbalanced transaction data**
 
-See `CLAUDE.md` for the full specification.
+[![Live App](https://img.shields.io/badge/🚀_Live_Demo-fraud--detection--scope.streamlit.app-FF4B4B?style=for-the-badge)](https://fraud-detection-scope.streamlit.app)
 
-## Setup
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?logo=scikitlearn&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?logo=streamlit&logoColor=white)
+![Plotly](https://img.shields.io/badge/Plotly-3F4F75?logo=plotly&logoColor=white)
+![imbalanced-learn](https://img.shields.io/badge/SMOTE-imbalanced--learn-8A2BE2)
+
+| 🎯 ROC-AUC | 🔍 Fraud Recall | 📊 Transactions | 🤖 Models Compared |
+|:---:|:---:|:---:|:---:|
+| **0.9933** | **71.4%** | **10,098** | **5** |
+
+<img src="docs/screenshots/overview.png" alt="Dashboard Overview" width="850">
+
+</div>
+
+---
+
+## ✨ What it does
+
+Fraud is rare but expensive — in this dataset only **0.67%** of transactions are fraudulent
+(68 out of 10,098). A naive model predicting "safe" for everything scores 99.3% accuracy
+while catching **zero** fraud. This project handles that imbalance properly:
+
+1. **🔬 Model pipeline** — trains and honestly compares 5 classifiers on a leakage-free
+   pipeline, then saves the best model (Random Forest).
+2. **📊 Interactive dashboard** — 5-page Streamlit app with live fraud scoring, an
+   adjustable risk threshold, and pattern analysis — deployed on Streamlit Cloud.
+
+## 🛡️ Leakage-free by design
+
+The #1 failure mode in imbalanced-data projects is data leakage. The pipeline order here
+guarantees honest metrics:
+
+```mermaid
+flowchart LR
+    A[Load .xlsx] --> B[Filter & clean] --> C[Encode] --> D{80/20 split}
+    D --> E[Scaler fit on TRAIN only] --> F[SMOTE on TRAIN only] --> G[Train 5 models]
+    D --> H[TEST set stays untouched] --> I[Honest evaluation]
+    G --> I
+```
+
+- **RobustScaler** fitted on the training split only — test is transformed, never refitted
+- **SMOTE** balances the training split only (54 → 8,024 fraud rows); the test set keeps
+  its natural 2,006 / 14 distribution
+- `random_state=42` everywhere → fully reproducible
+
+## 🏆 Results (held-out test set)
+
+| Model | Accuracy | Precision | Recall | F1 | ROC-AUC |
+|---|---:|---:|---:|---:|---:|
+| Logistic Regression | 0.9153 | 0.0663 | 0.8571 | 0.1231 | 0.9523 |
+| K-Nearest Neighbors | 0.9683 | 0.0833 | 0.3571 | 0.1351 | 0.6948 |
+| SVC (RBF) | 0.7876 | 0.0208 | 0.6429 | 0.0403 | 0.8147 |
+| Decision Tree | 0.9901 | 0.3333 | 0.4286 | 0.3750 | 0.7113 |
+| **Random Forest** 🥇 | **0.9955** | **0.6667** | **0.7143** | **0.6897** | **0.9933** |
+
+**Confusion matrix (2,020 unseen transactions):** TN 2,001 · FP 5 · FN 4 · TP 10 —
+the model catches **10 of 14** unseen fraud cases while wrongly flagging only **5 of 2,006**
+legitimate customers.
+
+## 📸 Dashboard tour
+
+<details>
+<summary><b>📈 Model Comparison</b> — all 5 metrics across all 5 models</summary>
+<img src="docs/screenshots/model_comparison.png" width="850">
+</details>
+
+<details>
+<summary><b>🔥 Fraud Patterns</b> — fraud <i>rate</i> by type, account, time of day</summary>
+<img src="docs/screenshots/fraud_patterns.png" width="850">
+</details>
+
+<details>
+<summary><b>🎯 Confusion Matrix</b> — held-out test performance, honestly labeled</summary>
+<img src="docs/screenshots/confusion_matrix.png" width="850">
+</details>
+
+<details>
+<summary><b>🔍 Transaction Explorer</b> — live threshold slider + real-time scoring form</summary>
+<img src="docs/screenshots/transaction_explorer.png" width="850">
+</details>
+
+The Explorer's **risk-threshold slider re-flags transactions live** — drag it and watch the
+flagged count change. A "Score a New Transaction" form runs the trained model on manual
+input in real time.
+
+## 🚀 Quickstart
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+git clone https://github.com/tanmay866/fraud-detection && cd fraud-detection
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Place the dataset at `data/Fraud_Detection.xlsx` (data files are gitignored).
-
-## Run the pipeline
-
-Run from the repo root, in order — each stage's output feeds the next:
+Place the dataset at `data/Fraud_Detection.xlsx` (data files are gitignored), then:
 
 ```bash
-python src/preprocess.py   # sanity check: shapes + class balance before/after SMOTE
-python src/train.py        # trains 5 models -> output/model_metrics.csv, models/best_model.pkl
-python src/score.py        # scores all rows -> output/scored_transactions.csv
+python src/preprocess.py   # shapes + class balance before/after SMOTE
+python src/train.py        # 5-model comparison → metrics CSVs + best_model.pkl
+python src/score.py        # full-dataset scoring → scored_transactions.csv
+streamlit run app.py       # dashboard at localhost:8501
 ```
 
-## Launch the dashboard
-
-```bash
-streamlit run app.py
-```
-
-Pages: Overview · Model Comparison · Fraud Patterns · Confusion Matrix (held-out test) ·
-Transaction Explorer (live threshold slider + score-a-new-transaction form).
-
-## Project layout
+## 📁 Project structure
 
 ```
 fraud-detection/
 ├── CLAUDE.md            # full project spec (source of truth)
-├── app.py               # Streamlit dashboard
-├── requirements.txt
+├── app.py               # 5-page Streamlit dashboard
 ├── data/                # Fraud_Detection.xlsx (gitignored)
 ├── src/
 │   ├── preprocess.py    # load → filter → encode → split → scale → SMOTE (train only)
 │   ├── train.py         # train 5 models, save best by ROC-AUC + metrics CSVs
 │   └── score.py         # score full dataset with saved model/scaler/encoders
-├── models/              # best_model.pkl, scaler.pkl, encoders.pkl (gitignored, regenerable)
-└── output/              # model_metrics.csv, confusion_matrix.csv, scored_transactions.csv (gitignored)
+├── models/              # best_model.pkl, scaler.pkl, encoders.pkl
+└── output/              # model_metrics.csv, confusion_matrix.csv, scored_transactions.csv
 ```
 
-## Notes
+## 🧰 Tech stack
 
-- No data leakage: train/test split happens **before** scaling and SMOTE; the scaler and
-  SMOTE are fit on the train split only, and `score.py` only ever transforms.
-- Fully reproducible: `random_state=42` everywhere; models/outputs are regenerated by
-  re-running the pipeline.
-- Dataset: 10,098 usable transactions, 68 fraud (~0.67%) — metrics on the 14 held-out
-  fraud cases carry natural variance.
-- Dev tooling: `ruff check .` for linting.
+`Python` · `pandas` · `scikit-learn` · `imbalanced-learn (SMOTE)` · `joblib` · `Plotly` · `Streamlit`
+
+---
+
+<div align="center">
+
+**Tanmay Patel** · Zidio Development — Data Analytics Internship · 2026
+
+[🚀 Live Demo](https://fraud-detection-scope.streamlit.app) · [📦 Repository](https://github.com/tanmay866/fraud-detection)
+
+</div>
