@@ -1,12 +1,15 @@
 # Core data / ML stack for fraud detection
 numpy
 pandas
+openpyxl
 scikit-learn
 scipy
 joblib
 matplotlib
 seaborn
 imbalanced-learn
+plotly
+streamlit
 jupyter
 
 # Dev tooling
