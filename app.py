@@ -16,9 +16,33 @@ import streamlit as st
 
 ROOT = Path(__file__).resolve().parent
 OUTPUT_DIR = ROOT / "output"
+MODELS_DIR = ROOT / "models"
 METRICS_CSV = OUTPUT_DIR / "model_metrics.csv"
 CONFUSION_CSV = OUTPUT_DIR / "confusion_matrix.csv"
 SCORED_CSV = OUTPUT_DIR / "scored_transactions.csv"
+MODEL_FILES = {
+    "best_model.pkl": MODELS_DIR / "best_model.pkl",
+    "scaler.pkl": MODELS_DIR / "scaler.pkl",
+    "encoders.pkl": MODELS_DIR / "encoders.pkl",
+}
+
+# Feature order the model/scaler were fit on (preprocess.py FEATURE_COLS), and the
+# subset that is label-encoded. Kept local so live scoring stays self-contained.
+MODEL_FEATURE_ORDER = [
+    "step",
+    "amount",
+    "oldbalanceOrg",
+    "newbalanceOrig",
+    "oldbalanceDest",
+    "newbalanceDest",
+    "unusuallogin",
+    "DayOfWeek",
+    "type",
+    "branch",
+    "Acct type",
+    "Time of day",
+]
+MODEL_CATEGORICALS = ["type", "branch", "Acct type", "Time of day"]
 
 # Consistent color language across the dashboard.
 FRAUD_COLOR = "#d62728"  # red
@@ -44,6 +68,17 @@ def load_scored():
     df = pd.read_csv(SCORED_CSV)
     df["day_of_week"] = df["day_of_week"].astype(int)  # 1–7, no NaN after preprocess
     return df
+
+
+@st.cache_resource
+def load_model_bundle():
+    """Load the trained model + fitted scaler + encoders (for live scoring)."""
+    import joblib
+
+    model = joblib.load(MODEL_FILES["best_model.pkl"])
+    scaler = joblib.load(MODEL_FILES["scaler.pkl"])
+    encoders = joblib.load(MODEL_FILES["encoders.pkl"])
+    return model, scaler, encoders
 
 
 def best_row(metrics):
@@ -247,6 +282,81 @@ def page_explorer(scored):
 
     st.caption(f"{len(view):,} transactions match the filters.")
     st.dataframe(view, width="stretch")
+
+    render_manual_scoring(scored)
+
+
+def render_manual_scoring(scored):
+    """Isolated: score a single manually-entered transaction with the live model.
+
+    The form collects 5 fields; the other 7 model features are filled with
+    dataset-typical defaults so the full 12-feature vector matches training.
+    """
+    st.divider()
+    st.markdown("### Score a New Transaction")
+    st.caption(
+        "Enter a transaction to score it live with the trained model. "
+        "Fields not shown use dataset-typical defaults."
+    )
+
+    missing = [name for name, path in MODEL_FILES.items() if not path.exists()]
+    if missing:
+        st.info(
+            "Model files not found (" + ", ".join(missing) + "). "
+            "Run `python src/train.py` from the repo root to enable live scoring."
+        )
+        return
+
+    model, scaler, encoders = load_model_bundle()
+
+    with st.form("score_new_transaction"):
+        c1, c2, c3 = st.columns(3)
+        amount = c1.number_input("Amount", min_value=0.0, value=1000.0, step=100.0)
+        txn_type = c2.selectbox("Type", list(encoders["type"].classes_))
+        acct_type = c3.selectbox("Account type", list(encoders["Acct type"].classes_))
+        c4, c5 = st.columns(2)
+        time_of_day = c4.selectbox("Time of day", list(encoders["Time of day"].classes_))
+        day_of_week = c5.selectbox("Day of week", [1, 2, 3, 4, 5, 6, 7])
+        submitted = st.form_submit_button("Score transaction")
+
+    if not submitted:
+        return
+
+    # Defaults for the 7 features not on the form, from the scored dataset.
+    default_branch = scored["branch"].mode().iloc[0]
+    row = {
+        "step": scored["step"].median(),
+        "amount": amount,
+        "oldbalanceOrg": scored["oldbalanceOrg"].median(),
+        "newbalanceOrig": scored["newbalanceOrig"].median(),
+        "oldbalanceDest": scored["oldbalanceDest"].median(),
+        "newbalanceDest": scored["newbalanceDest"].median(),
+        "unusuallogin": scored["unusuallogin"].median(),
+        "DayOfWeek": float(day_of_week),
+        "type": txn_type,
+        "branch": default_branch,
+        "Acct type": acct_type,
+        "Time of day": time_of_day,
+    }
+
+    # Transform exactly as preprocess.py does: encode categoricals, then scale.
+    X = pd.DataFrame([row], columns=MODEL_FEATURE_ORDER)
+    for col in MODEL_CATEGORICALS:
+        X[col] = encoders[col].transform(X[col])
+    proba = float(model.predict_proba(scaler.transform(X))[:, 1][0])
+    flagged = proba >= 0.5
+
+    m1, m2 = st.columns(2)
+    m1.metric("Fraud probability", f"{proba:.1%}")
+    m2.metric("Decision @ 0.5", "🚩 FLAGGED" if flagged else "✅ Not flagged")
+    if flagged:
+        st.error(f"Flagged as fraud — probability {proba:.1%} ≥ 0.50.")
+    else:
+        st.success(f"Not flagged — probability {proba:.1%} < 0.50.")
+    st.caption(
+        f"Defaults used for non-entered features: branch = {default_branch}, "
+        f"step = {row['step']:.0f}, balances & unusuallogin at dataset medians."
+    )
 
 
 def main():
