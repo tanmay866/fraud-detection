@@ -1,0 +1,13 @@
+# Core data / ML stack for fraud detection
+numpy
+pandas
+scikit-learn
+scipy
+matplotlib
+seaborn
+imbalanced-learn
+jupyter
+
+# Dev tooling
+pytest
+ruff
