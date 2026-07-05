@@ -27,6 +27,10 @@ data/
 # ...but the dashboard artifacts must be in the repo for Streamlit Cloud deploys
 !output/*.csv
 
+# Internal project docs — keep local, never commit
+CLAUDE.md
+Financial Fraud Detection Model.txt
+
 # Environment / secrets
 .env
 
