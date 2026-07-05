@@ -555,18 +555,20 @@ def main():
     confusion = load_confusion()
     scored = load_scored()
 
+    pages = [
+        "Overview",
+        "Model Comparison",
+        "Fraud Patterns",
+        "Confusion Matrix",
+        "Transaction Explorer",
+        "Fraud Networks",
+        "Risk Scores",
+        "Alerts & Ledger",
+    ]
+    # Deep-linking: ?page=Risk+Scores opens that page directly.
+    requested = st.query_params.get("page", pages[0])
     page = st.sidebar.radio(
-        "Navigate",
-        [
-            "Overview",
-            "Model Comparison",
-            "Fraud Patterns",
-            "Confusion Matrix",
-            "Transaction Explorer",
-            "Fraud Networks",
-            "Risk Scores",
-            "Alerts & Ledger",
-        ],
+        "Navigate", pages, index=pages.index(requested) if requested in pages else 0
     )
 
     if page == "Overview":

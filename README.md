@@ -95,6 +95,21 @@ legitimate customers.
 <img src="docs/screenshots/transaction_explorer.png" width="850">
 </details>
 
+<details>
+<summary><b>🕸️ Fraud Networks</b> — graph analysis of account networks, mule-account detection</summary>
+<img src="docs/screenshots/fraud_networks.png" width="850">
+</details>
+
+<details>
+<summary><b>🏦 Risk Scores</b> — AI-driven customer risk tiers (A–E)</summary>
+<img src="docs/screenshots/risk_scores.png" width="850">
+</details>
+
+<details>
+<summary><b>⛓️ Alerts & Ledger</b> — stream alerts + live-verified tamper-evident ledger</summary>
+<img src="docs/screenshots/alerts_ledger.png" width="850">
+</details>
+
 The Explorer's **risk-threshold slider re-flags transactions live** — drag it and watch the
 flagged count change. A "Score a New Transaction" form runs the trained model on manual
 input in real time.
