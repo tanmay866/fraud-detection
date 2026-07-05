@@ -2,21 +2,27 @@
 
 # 💳 Financial Fraud Detection System
 
-**Machine-learning pipeline + interactive Streamlit dashboard for real-time fraud scoring on extremely imbalanced transaction data**
+**Machine-learning pipeline · real-time monitoring suite · interactive dashboard**
+**for fraud scoring on extremely imbalanced transaction data**
 
 [![Live App](https://img.shields.io/badge/🚀_Live_Demo-fraud--detection--scope.streamlit.app-FF4B4B?style=for-the-badge)](https://fraud-detection-scope.streamlit.app)
 
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?logo=scikitlearn&logoColor=white)
+![XGBoost](https://img.shields.io/badge/XGBoost-winner-2E9E4F)
+![LightGBM](https://img.shields.io/badge/LightGBM-9ACD32)
+![imbalanced-learn](https://img.shields.io/badge/SMOTE-imbalanced--learn-8A2BE2)
+![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
 ![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?logo=streamlit&logoColor=white)
 ![Plotly](https://img.shields.io/badge/Plotly-3F4F75?logo=plotly&logoColor=white)
-![imbalanced-learn](https://img.shields.io/badge/SMOTE-imbalanced--learn-8A2BE2)
 
-| 🎯 ROC-AUC | 🔍 Fraud Recall | 📊 Transactions | 🤖 Models Compared |
-|:---:|:---:|:---:|:---:|
-| **0.9976** | **71.4%** | **10,098** | **10** |
+| 🎯 ROC-AUC | 🔍 Fraud Recall | ✅ Precision | 📊 Transactions | 🤖 Models |
+|:---:|:---:|:---:|:---:|:---:|
+| **0.9976** | **71.4%** | **76.9%** | **10,098** | **10** |
 
-<img src="docs/screenshots/overview.png" alt="Dashboard Overview" width="850">
+<a href="https://fraud-detection-scope.streamlit.app"><img src="docs/screenshots/overview.png" alt="Dashboard Overview" width="880"></a>
+
+[**✨ Features**](#-what-it-does) · [**📸 Screenshots**](#-dashboard-gallery) · [**🏆 Results**](#-results-held-out-test-set) · [**🚀 Quickstart**](#-quickstart)
 
 </div>
 
@@ -26,13 +32,60 @@
 
 Fraud is rare but expensive — in this dataset only **0.67%** of transactions are fraudulent
 (68 out of 10,098). A naive model predicting "safe" for everything scores 99.3% accuracy
-while catching **zero** fraud. This project handles that imbalance properly:
+while catching **zero** fraud. This project handles that imbalance properly, end to end:
 
-1. **🔬 Model pipeline** — trains and honestly compares 10 models (7 supervised +
-   3 unsupervised anomaly detectors) on a leakage-free pipeline, then saves the
-   best model (XGBoost).
-2. **📊 Interactive dashboard** — 8-page Streamlit app with live fraud scoring, an
-   adjustable risk threshold, and pattern analysis — deployed on Streamlit Cloud.
+| | Component | What it delivers |
+|---|---|---|
+| 🔬 | **10-model pipeline** | 7 supervised classifiers + 3 unsupervised anomaly detectors, honestly compared on a leakage-free pipeline — **XGBoost** wins and is deployed |
+| 🗄️ | **ETL → SQLite** | Cleaned transactions loaded into `fraud_detection.db`, feeding the monitoring stack |
+| 🕸️ | **Graph analysis** | Account-network detection via union-find — surfaced a real **mule account** receiving 2 frauds worth **$133,781** |
+| 🚨 | **Real-time monitoring** | Simulated transaction stream scored live; alerts to console, CSV, e-mail, and **your phone** (ntfy push — tested live) |
+| 🏦 | **AI risk scoring** | Every customer rated 0–100 and tiered **A–E** from model probabilities + behavior |
+| ⛓️ | **Blockchain ledger** | Flagged transactions in a SHA-256 hash chain — tampering is **detected live** in the dashboard |
+| 📊 | **8-page dashboard** | Live threshold tuning, real-time scoring form, deep-linkable pages — deployed on Streamlit Cloud |
+
+## 📸 Dashboard gallery
+
+*Every screenshot links to that page of the live app.*
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <a href="https://fraud-detection-scope.streamlit.app/?page=Model+Comparison"><img src="docs/screenshots/model_comparison.png"></a>
+      <br><b>📈 Model Comparison</b><br><sub>5 metrics × 10 models, best-model callout</sub>
+    </td>
+    <td align="center" width="50%">
+      <a href="https://fraud-detection-scope.streamlit.app/?page=Transaction+Explorer"><img src="docs/screenshots/transaction_explorer.png"></a>
+      <br><b>🔍 Transaction Explorer</b><br><sub>live threshold slider re-flags in real time + scoring form</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <a href="https://fraud-detection-scope.streamlit.app/?page=Fraud+Networks"><img src="docs/screenshots/fraud_networks.png"></a>
+      <br><b>🕸️ Fraud Networks</b><br><sub>graph analysis — mule-account detection</sub>
+    </td>
+    <td align="center">
+      <a href="https://fraud-detection-scope.streamlit.app/?page=Risk+Scores"><img src="docs/screenshots/risk_scores.png"></a>
+      <br><b>🏦 Risk Scores</b><br><sub>AI-driven customer tiers A–E</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <a href="https://fraud-detection-scope.streamlit.app/?page=Alerts+%26+Ledger"><img src="docs/screenshots/alerts_ledger.png"></a>
+      <br><b>⛓️ Alerts & Ledger</b><br><sub>alert queue + live-verified hash chain</sub>
+    </td>
+    <td align="center">
+      <a href="https://fraud-detection-scope.streamlit.app/?page=Confusion+Matrix"><img src="docs/screenshots/confusion_matrix.png"></a>
+      <br><b>🎯 Confusion Matrix</b><br><sub>held-out test performance, honestly labeled</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2">
+      <a href="https://fraud-detection-scope.streamlit.app/?page=Fraud+Patterns"><img src="docs/screenshots/fraud_patterns.png" width="440"></a>
+      <br><b>🔥 Fraud Patterns</b><br><sub>fraud <i>rate</i> by type, account, time of day + heatmap</sub>
+    </td>
+  </tr>
+</table>
 
 ## 🛡️ Leakage-free by design
 
@@ -50,6 +103,7 @@ flowchart LR
 - **RobustScaler** fitted on the training split only — test is transformed, never refitted
 - **SMOTE** balances the training split only (54 → 8,024 fraud rows); the test set keeps
   its natural 2,006 / 14 distribution
+- **Unsupervised detectors** fit on original legit rows only — never on synthetic SMOTE output
 - `random_state=42` everywhere → fully reproducible
 
 ## 🏆 Results (held-out test set)
@@ -73,47 +127,6 @@ flowchart LR
 the model catches **10 of 14** unseen fraud cases while wrongly flagging only **3 of 2,006**
 legitimate customers.
 
-## 📸 Dashboard tour
-
-<details>
-<summary><b>📈 Model Comparison</b> — all 5 metrics across all 10 models</summary>
-<img src="docs/screenshots/model_comparison.png" width="850">
-</details>
-
-<details>
-<summary><b>🔥 Fraud Patterns</b> — fraud <i>rate</i> by type, account, time of day</summary>
-<img src="docs/screenshots/fraud_patterns.png" width="850">
-</details>
-
-<details>
-<summary><b>🎯 Confusion Matrix</b> — held-out test performance, honestly labeled</summary>
-<img src="docs/screenshots/confusion_matrix.png" width="850">
-</details>
-
-<details>
-<summary><b>🔍 Transaction Explorer</b> — live threshold slider + real-time scoring form</summary>
-<img src="docs/screenshots/transaction_explorer.png" width="850">
-</details>
-
-<details>
-<summary><b>🕸️ Fraud Networks</b> — graph analysis of account networks, mule-account detection</summary>
-<img src="docs/screenshots/fraud_networks.png" width="850">
-</details>
-
-<details>
-<summary><b>🏦 Risk Scores</b> — AI-driven customer risk tiers (A–E)</summary>
-<img src="docs/screenshots/risk_scores.png" width="850">
-</details>
-
-<details>
-<summary><b>⛓️ Alerts & Ledger</b> — stream alerts + live-verified tamper-evident ledger</summary>
-<img src="docs/screenshots/alerts_ledger.png" width="850">
-</details>
-
-The Explorer's **risk-threshold slider re-flags transactions live** — drag it and watch the
-flagged count change. A "Score a New Transaction" form runs the trained model on manual
-input in real time.
-
 ## 🚀 Quickstart
 
 ```bash
@@ -136,14 +149,18 @@ python src/blockchain_ledger.py # tamper-evident hash-chained ledger of flagged 
 streamlit run app.py         # dashboard at localhost:8501
 ```
 
-Mobile push alerts: install the free [ntfy](https://ntfy.sh) app, subscribe to a topic, then
+📱 **Mobile alerts:** install the free [ntfy](https://ntfy.sh) app, subscribe to a topic, then
 `NTFY_TOPIC=<your-topic> python src/stream_monitor.py` — every fraud alert lands on your phone.
+
+🔗 **Deep links:** open any dashboard page directly, e.g.
+[`?page=Fraud+Networks`](https://fraud-detection-scope.streamlit.app/?page=Fraud+Networks).
 
 ## 📁 Project structure
 
 ```
 fraud-detection/
 ├── CLAUDE.md            # full project spec (source of truth)
+├── REPORT.pdf           # full project report (19 pages)
 ├── app.py               # 8-page Streamlit dashboard
 ├── data/                # Fraud_Detection.xlsx (gitignored)
 ├── src/
@@ -169,6 +186,6 @@ fraud-detection/
 
 **Tanmay Patel** · Zidio Development — Data Analytics Internship · 2026
 
-[🚀 Live Demo](https://fraud-detection-scope.streamlit.app) · [📦 Repository](https://github.com/tanmay866/fraud-detection)
+[🚀 Live Demo](https://fraud-detection-scope.streamlit.app) · [📦 Repository](https://github.com/tanmay866/fraud-detection) · [📄 Full Report](REPORT.pdf)
 
 </div>
