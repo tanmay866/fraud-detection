@@ -14,7 +14,7 @@
 
 | 🎯 ROC-AUC | 🔍 Fraud Recall | 📊 Transactions | 🤖 Models Compared |
 |:---:|:---:|:---:|:---:|
-| **0.9933** | **71.4%** | **10,098** | **5** |
+| **0.9976** | **71.4%** | **10,098** | **10** |
 
 <img src="docs/screenshots/overview.png" alt="Dashboard Overview" width="850">
 
@@ -28,9 +28,10 @@ Fraud is rare but expensive — in this dataset only **0.67%** of transactions a
 (68 out of 10,098). A naive model predicting "safe" for everything scores 99.3% accuracy
 while catching **zero** fraud. This project handles that imbalance properly:
 
-1. **🔬 Model pipeline** — trains and honestly compares 5 classifiers on a leakage-free
-   pipeline, then saves the best model (Random Forest).
-2. **📊 Interactive dashboard** — 5-page Streamlit app with live fraud scoring, an
+1. **🔬 Model pipeline** — trains and honestly compares 10 models (7 supervised +
+   3 unsupervised anomaly detectors) on a leakage-free pipeline, then saves the
+   best model (XGBoost).
+2. **📊 Interactive dashboard** — 8-page Streamlit app with live fraud scoring, an
    adjustable risk threshold, and pattern analysis — deployed on Streamlit Cloud.
 
 ## 🛡️ Leakage-free by design
@@ -41,7 +42,7 @@ guarantees honest metrics:
 ```mermaid
 flowchart LR
     A[Load .xlsx] --> B[Filter & clean] --> C[Encode] --> D{80/20 split}
-    D --> E[Scaler fit on TRAIN only] --> F[SMOTE on TRAIN only] --> G[Train 5 models]
+    D --> E[Scaler fit on TRAIN only] --> F[SMOTE on TRAIN only] --> G[Train 10 models]
     D --> H[TEST set stays untouched] --> I[Honest evaluation]
     G --> I
 ```
@@ -59,16 +60,23 @@ flowchart LR
 | K-Nearest Neighbors | 0.9683 | 0.0833 | 0.3571 | 0.1351 | 0.6948 |
 | SVC (RBF) | 0.7876 | 0.0208 | 0.6429 | 0.0403 | 0.8147 |
 | Decision Tree | 0.9901 | 0.3333 | 0.4286 | 0.3750 | 0.7113 |
-| **Random Forest** 🥇 | **0.9955** | **0.6667** | **0.7143** | **0.6897** | **0.9933** |
+| Random Forest | 0.9955 | 0.6667 | 0.7143 | 0.6897 | 0.9933 |
+| **XGBoost** 🥇 | **0.9965** | **0.7692** | **0.7143** | **0.7407** | **0.9976** |
+| LightGBM | 0.9965 | 0.7692 | 0.7143 | 0.7407 | 0.9466 |
+| Isolation Forest* | 0.9812 | 0.0385 | 0.0714 | 0.0500 | 0.5818 |
+| One-Class SVM* | 0.9807 | 0.0370 | 0.0714 | 0.0488 | 0.5972 |
+| Autoencoder (MLP)* | 0.9837 | 0.0870 | 0.1429 | 0.1081 | 0.8165 |
 
-**Confusion matrix (2,020 unseen transactions):** TN 2,001 · FP 5 · FN 4 · TP 10 —
-the model catches **10 of 14** unseen fraud cases while wrongly flagging only **5 of 2,006**
+\* Unsupervised anomaly detectors — trained without labels, shown for comparison.
+
+**Confusion matrix (2,020 unseen transactions):** TN 2,003 · FP 3 · FN 4 · TP 10 —
+the model catches **10 of 14** unseen fraud cases while wrongly flagging only **3 of 2,006**
 legitimate customers.
 
 ## 📸 Dashboard tour
 
 <details>
-<summary><b>📈 Model Comparison</b> — all 5 metrics across all 5 models</summary>
+<summary><b>📈 Model Comparison</b> — all 5 metrics across all 10 models</summary>
 <img src="docs/screenshots/model_comparison.png" width="850">
 </details>
 
@@ -121,7 +129,7 @@ Mobile push alerts: install the free [ntfy](https://ntfy.sh) app, subscribe to a
 ```
 fraud-detection/
 ├── CLAUDE.md            # full project spec (source of truth)
-├── app.py               # 5-page Streamlit dashboard
+├── app.py               # 8-page Streamlit dashboard
 ├── data/                # Fraud_Detection.xlsx (gitignored)
 ├── src/
 │   ├── preprocess.py    # load → filter → encode → split → scale → SMOTE (train only)

@@ -20,6 +20,10 @@ MODELS_DIR = ROOT / "models"
 METRICS_CSV = OUTPUT_DIR / "model_metrics.csv"
 CONFUSION_CSV = OUTPUT_DIR / "confusion_matrix.csv"
 SCORED_CSV = OUTPUT_DIR / "scored_transactions.csv"
+NETWORKS_CSV = OUTPUT_DIR / "graph_fraud_networks.csv"
+RISK_CSV = OUTPUT_DIR / "customer_risk_scores.csv"
+ALERTS_CSV = OUTPUT_DIR / "fraud_alerts.csv"
+DB_PATH = OUTPUT_DIR / "fraud_detection.db"
 MODEL_FILES = {
     "best_model.pkl": MODELS_DIR / "best_model.pkl",
     "scaler.pkl": MODELS_DIR / "scaler.pkl",
@@ -47,6 +51,13 @@ MODEL_CATEGORICALS = ["type", "branch", "Acct type", "Time of day"]
 # Consistent color language across the dashboard.
 FRAUD_COLOR = "#d62728"  # red
 LEGIT_COLOR = "#1f77b4"  # blue
+TIER_COLORS = {  # A (safest) -> E (riskiest)
+    "A": "#2ca02c",
+    "B": "#98df8a",
+    "C": "#ffbf00",
+    "D": "#ff7f0e",
+    "E": "#d62728",
+}
 
 METRIC_COLS = ["accuracy", "precision", "recall", "f1", "roc_auc"]
 
@@ -68,6 +79,16 @@ def load_scored():
     df = pd.read_csv(SCORED_CSV)
     df["day_of_week"] = df["day_of_week"].astype(int)  # 1–7, no NaN after preprocess
     return df
+
+
+@st.cache_data
+def load_networks():
+    return pd.read_csv(NETWORKS_CSV)
+
+
+@st.cache_data
+def load_risk_scores():
+    return pd.read_csv(RISK_CSV)
 
 
 @st.cache_resource
@@ -359,6 +380,162 @@ def render_manual_scoring(scored):
     )
 
 
+def page_networks():
+    st.subheader("Fraud Networks — Graph Analysis")
+    st.caption(
+        "Accounts are nodes, transactions are edges; connected components form "
+        "networks. Fraud concentrating in one network is an organized-fraud signal."
+    )
+    if not NETWORKS_CSV.exists():
+        st.error(
+            "Missing output/graph_fraud_networks.csv — run "
+            "`python src/graph_analysis.py` first."
+        )
+        return
+    nets = load_networks()
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Networks containing fraud", f"{len(nets):,}")
+    c2.metric("Multi-fraud networks", f"{int((nets['n_fraud'] > 1).sum()):,}")
+    c3.metric("Total fraud amount", f"${nets['fraud_amount'].sum():,.0f}")
+
+    multi = nets[nets["n_fraud"] > 1]
+    if len(multi):
+        worst = multi.iloc[0]
+        st.error(
+            f"🚨 Mule-account signal: network **{worst['network_id']}** received "
+            f"**{int(worst['n_fraud'])} separate frauds** totaling "
+            f"**${worst['fraud_amount']:,.2f}** across {int(worst['accounts'])} accounts."
+        )
+
+    top = nets.head(15)
+    fig = px.bar(
+        top,
+        x="network_id",
+        y="fraud_amount",
+        title="Top fraud networks by fraud amount",
+        color_discrete_sequence=[FRAUD_COLOR],
+        hover_data=["n_transactions", "n_fraud", "accounts"],
+    )
+    fig.update_yaxes(title="Fraud amount")
+    st.plotly_chart(fig, width="stretch")
+
+    st.dataframe(nets, width="stretch")
+
+
+def page_risk_scores():
+    st.subheader("Customer Risk Scores — AI-driven")
+    st.caption(
+        "0-100 risk score per customer from the model's fraud probabilities plus "
+        "behavioral signals (amount percentile, unusual logins, confirmed fraud), "
+        "mapped to creditworthiness-style tiers A (safest) to E (highest risk)."
+    )
+    if not RISK_CSV.exists():
+        st.error(
+            "Missing output/customer_risk_scores.csv — run "
+            "`python src/risk_scoring.py` first."
+        )
+        return
+    risk = load_risk_scores()
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Customers scored", f"{len(risk):,}")
+    c2.metric("Tier E (highest risk)", f"{int((risk['risk_tier'] == 'E').sum()):,}")
+    c3.metric("Average risk score", f"{risk['risk_score'].mean():.1f}")
+
+    dist = risk["risk_tier"].value_counts().sort_index().reset_index()
+    dist.columns = ["risk_tier", "customers"]
+    fig = px.bar(
+        dist,
+        x="risk_tier",
+        y="customers",
+        color="risk_tier",
+        color_discrete_map=TIER_COLORS,
+        title="Customers per risk tier",
+    )
+    fig.update_layout(showlegend=False)
+    fig.update_yaxes(type="log", title="Customers (log)")
+    st.plotly_chart(fig, width="stretch")
+
+    st.markdown("**Top 20 highest-risk customers**")
+    st.dataframe(risk.head(20), width="stretch")
+
+
+def verify_ledger():
+    """Recompute the ledger hash chain; returns (n_blocks, bad_blocks) or None."""
+    import hashlib
+    import sqlite3
+
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        try:
+            rows = conn.execute(
+                "SELECT block_index, timestamp, data, prev_hash, hash "
+                "FROM ledger ORDER BY block_index"
+            ).fetchall()
+        finally:
+            conn.close()
+    except sqlite3.Error:
+        return None
+
+    bad, expected_prev = [], "0" * 64
+    for index, timestamp, data, prev_hash, stored in rows:
+        payload = f"{index}|{timestamp}|{data}|{prev_hash}"
+        if (
+            prev_hash != expected_prev
+            or hashlib.sha256(payload.encode()).hexdigest() != stored
+        ):
+            bad.append(index)
+        expected_prev = stored
+    return len(rows), bad
+
+
+def page_alerts_ledger():
+    st.subheader("Alerts & Blockchain Ledger")
+
+    st.markdown("### 🚨 Real-time fraud alerts")
+    st.caption(
+        "Raised by the stream monitor (`python src/stream_monitor.py`) when a "
+        "transaction scores above the alert threshold. Also delivered as mobile "
+        "push notifications via ntfy when enabled."
+    )
+    if ALERTS_CSV.exists():
+        alerts = pd.read_csv(ALERTS_CSV)
+        st.metric("Alerts in last stream run", f"{len(alerts):,}")
+        st.dataframe(
+            alerts.sort_values("fraud_probability", ascending=False),
+            width="stretch",
+        )
+    else:
+        st.info(
+            "No alert log yet — run `python src/stream_monitor.py` to replay the "
+            "transaction stream and generate alerts."
+        )
+
+    st.markdown("### ⛓️ Tamper-evident ledger")
+    st.caption(
+        "Every flagged transaction is recorded in a SHA-256 hash-chained ledger "
+        "(`python src/blockchain_ledger.py`). Each block stores the previous "
+        "block's hash, so any retroactive edit breaks the chain."
+    )
+    if not DB_PATH.exists():
+        st.info("No database yet — run `python src/etl.py` then `python src/blockchain_ledger.py`.")
+        return
+    result = verify_ledger()
+    if result is None:
+        st.info("No ledger yet — run `python src/blockchain_ledger.py` to create it.")
+        return
+    n_blocks, bad = result
+    c1, c2 = st.columns(2)
+    c1.metric("Blocks in chain", f"{n_blocks:,}")
+    if bad:
+        c2.metric("Chain integrity", "TAMPERED ⚠️")
+        st.error(f"Verification failed at block(s): {bad} — records were modified.")
+    else:
+        c2.metric("Chain integrity", "VALID ✅")
+        st.success("Hash chain verified live — no record has been altered.")
+
+
 def main():
     st.title("💳 Fraud Detection Dashboard")
 
@@ -386,6 +563,9 @@ def main():
             "Fraud Patterns",
             "Confusion Matrix",
             "Transaction Explorer",
+            "Fraud Networks",
+            "Risk Scores",
+            "Alerts & Ledger",
         ],
     )
 
@@ -397,6 +577,12 @@ def main():
         page_fraud_patterns(scored)
     elif page == "Confusion Matrix":
         page_confusion(confusion, metrics)
+    elif page == "Fraud Networks":
+        page_networks()
+    elif page == "Risk Scores":
+        page_risk_scores()
+    elif page == "Alerts & Ledger":
+        page_alerts_ledger()
     else:
         page_explorer(scored)
 
