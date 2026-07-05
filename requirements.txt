@@ -5,6 +5,7 @@ openpyxl
 scikit-learn
 imbalanced-learn
 joblib
+xgboost
 plotly
 streamlit
 

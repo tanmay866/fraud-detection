@@ -1,2 +1,2 @@
 model_name,tn,fp,fn,tp
-RandomForestClassifier,2001,5,4,10
+XGBClassifier,2003,3,4,10

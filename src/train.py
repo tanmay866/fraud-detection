@@ -1,4 +1,4 @@
-"""Train 5 classifiers on the preprocessed data, compare on the untouched test
+"""Train 6 classifiers on the preprocessed data, compare on the untouched test
 set, write metrics CSV, and persist the best model by ROC-AUC.
 """
 
@@ -18,6 +18,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
+from xgboost import XGBClassifier
 
 from preprocess import RANDOM_STATE, ROOT, get_data
 
@@ -35,6 +36,9 @@ MODELS = {
     "DecisionTreeClassifier": DecisionTreeClassifier(random_state=RANDOM_STATE),
     "RandomForestClassifier": RandomForestClassifier(
         n_estimators=100, random_state=RANDOM_STATE
+    ),
+    "XGBClassifier": XGBClassifier(
+        random_state=RANDOM_STATE, eval_metric="logloss", n_estimators=100
     ),
 }
 
