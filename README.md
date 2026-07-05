@@ -159,7 +159,6 @@ streamlit run app.py         # dashboard at localhost:8501
 
 ```
 fraud-detection/
-├── CLAUDE.md            # full project spec (source of truth)
 ├── REPORT.pdf           # full project report (19 pages)
 ├── app.py               # 8-page Streamlit dashboard
 ├── data/                # Fraud_Detection.xlsx (gitignored)
