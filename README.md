@@ -102,11 +102,19 @@ pip install -r requirements.txt
 Place the dataset at `data/Fraud_Detection.xlsx` (data files are gitignored), then:
 
 ```bash
-python src/preprocess.py   # shapes + class balance before/after SMOTE
-python src/train.py        # 5-model comparison → metrics CSVs + best_model.pkl
-python src/score.py        # full-dataset scoring → scored_transactions.csv
-streamlit run app.py       # dashboard at localhost:8501
+python src/preprocess.py     # shapes + class balance before/after SMOTE
+python src/etl.py            # ETL → SQLite database (output/fraud_detection.db)
+python src/train.py          # 10-model comparison → metrics CSVs + best_model.pkl
+python src/score.py          # full-dataset scoring → scored_transactions.csv
+python src/graph_analysis.py # fraud network detection (account graph)
+python src/stream_monitor.py # simulated real-time stream + fraud alerts
+python src/risk_scoring.py   # AI-driven customer risk scores (A–E tiers)
+python src/blockchain_ledger.py # tamper-evident hash-chained ledger of flagged txns
+streamlit run app.py         # dashboard at localhost:8501
 ```
+
+Mobile push alerts: install the free [ntfy](https://ntfy.sh) app, subscribe to a topic, then
+`NTFY_TOPIC=<your-topic> python src/stream_monitor.py` — every fraud alert lands on your phone.
 
 ## 📁 Project structure
 
@@ -117,15 +125,20 @@ fraud-detection/
 ├── data/                # Fraud_Detection.xlsx (gitignored)
 ├── src/
 │   ├── preprocess.py    # load → filter → encode → split → scale → SMOTE (train only)
-│   ├── train.py         # train 5 models, save best by ROC-AUC + metrics CSVs
-│   └── score.py         # score full dataset with saved model/scaler/encoders
+│   ├── etl.py           # ETL: cleaned data → SQLite (fraud_detection.db)
+│   ├── train.py         # 7 supervised + 3 unsupervised models, save best by ROC-AUC
+│   ├── score.py         # score full dataset with saved model/scaler/encoders
+│   ├── graph_analysis.py# account-graph fraud network detection
+│   ├── stream_monitor.py# simulated stream + alerts (console/CSV/email/mobile)
+│   ├── risk_scoring.py  # AI-driven customer risk scores (A–E tiers)
+│   └── blockchain_ledger.py # SHA-256 hash-chained ledger + tamper detection
 ├── models/              # best_model.pkl, scaler.pkl, encoders.pkl
-└── output/              # model_metrics.csv, confusion_matrix.csv, scored_transactions.csv
+└── output/              # metrics + scored CSVs, fraud_detection.db, alerts, networks
 ```
 
 ## 🧰 Tech stack
 
-`Python` · `pandas` · `scikit-learn` · `imbalanced-learn (SMOTE)` · `joblib` · `Plotly` · `Streamlit`
+`Python` · `pandas` · `scikit-learn` · `XGBoost` · `LightGBM` · `imbalanced-learn (SMOTE)` · `SQLite` · `joblib` · `Plotly` · `Streamlit`
 
 ---
 

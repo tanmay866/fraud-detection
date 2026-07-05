@@ -6,6 +6,7 @@ scikit-learn
 imbalanced-learn
 joblib
 xgboost
+lightgbm
 plotly
 streamlit
 
